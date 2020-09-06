@@ -6,11 +6,21 @@
  */
 #include "common.h"
 #include "FIFOreqchannel.h"
+#include<sys/wait.h>
 
 using namespace std;
 
-
 int main(int argc, char *argv[]) {
+    //fork and execvp
+    char* args [] = {"./server", "p:t:e:f:m:"};
+    pid_t pid = fork();
+    cout << "pid = " << pid << endl;
+    if (pid == 0){
+        wait(NULL);
+        execvp(args[0], args);//run server
+    }
+
+
     int person;
     float seconds;
     int ecgno;
@@ -26,7 +36,7 @@ int main(int argc, char *argv[]) {
     // datamsg* x = new datamsg (1, 0.004, 2);
 
     int opt;
-    while ((opt = getopt(argc, argv, "p:t:e:f:")) != -1) {
+    while ((opt = getopt(argc, argv, "p:t:e:f:m:")) != -1) {
         switch (opt) {
             case 'p':
                 person = atoi(optarg);
@@ -40,6 +50,8 @@ int main(int argc, char *argv[]) {
             case 'f':
                 fname = optarg;
                 file_transfer = true;
+                break;
+            case 'm':
                 break;
         }
     }
@@ -57,9 +69,6 @@ int main(int argc, char *argv[]) {
         delete x;
         delete reply;
     }
-    //int nbytes = chan.cread (buf, MAX_MESSAGE);
-	//double reply = *(double *) buf;
-
 	//FILE Transfer *************************************************************
 	if (file_transfer) {
         string fpath = "received/" + fname ; //file to write to
@@ -86,7 +95,6 @@ int main(int argc, char *argv[]) {
         myfile.open(fpath);
         int index = 0; // index in the file
         //int temp = 1000; //to be replaced with file length later
-        int loops = 0; // how many times loop below executes (195)
         while (file_length > 0) {
 
             if (file_length >= MAX_MESSAGE) {
@@ -103,10 +111,9 @@ int main(int argc, char *argv[]) {
 
             char receiveBuf[_len];
             chan.cread(receiveBuf, sizeof(receiveBuf));
-            cout << "Received: " << receiveBuf << endl << endl;
+            //cout << "Received: " << receiveBuf << endl << endl;
             myfile.write(receiveBuf, _len);
             //myfile << receiveBuf;
-            loops +=1;
             file_length -= _len;
             index += _len;
             delete newBuf;
@@ -114,7 +121,6 @@ int main(int argc, char *argv[]) {
         }
         myfile.close();
         delete buf;
-        cout << "loops: " << loops << endl;
     }
 
 
