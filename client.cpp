@@ -18,6 +18,9 @@ int main(int argc, char *argv[]) {
     bool file_transfer = false; //Determines whether to to get datamessage or file message
     FIFORequestChannel chan("control", FIFORequestChannel::CLIENT_SIDE);
 
+    //NEW CHANNEL
+    //FIFORequestChannel chan2 ("control2", FIFORequestChannel::CLIENT_SIDE);
+
     // sending a non-sense message, you need to change this
     //char buf [MAX_MESSAGE];
     // datamsg* x = new datamsg (1, 0.004, 2);
@@ -59,12 +62,12 @@ int main(int argc, char *argv[]) {
 
 	//FILE Transfer *************************************************************
 	if (file_transfer) {
-        ofstream myfile;
-        string fpath = "received/" + fname ;
+        string fpath = "received/" + fname ; //file to write to
+	    ofstream myfile;
 
         int _offset = 0;
         int _len = 0; //window length
-        //max bytes transferred
+
 
         filemsg fm(_offset, _len);
         char *buf = new char[MAX_MESSAGE];
@@ -76,7 +79,6 @@ int main(int argc, char *argv[]) {
         //GET FILE LENGTH
         __int64_t filelen;
         chan.cread(&filelen, sizeof(__int64_t));
-        //cout << "File Length: " << filelen << endl;
         int file_length = filelen;
         cout << "file length: " << file_length << endl; //convert __int64_t to int
 
@@ -84,7 +86,9 @@ int main(int argc, char *argv[]) {
         myfile.open(fpath);
         int index = 0; // index in the file
         //int temp = 1000; //to be replaced with file length later
+        int loops = 0; // how many times loop below executes (195)
         while (file_length > 0) {
+
             if (file_length >= MAX_MESSAGE) {
                 _len = MAX_MESSAGE;
             } else {
@@ -99,9 +103,10 @@ int main(int argc, char *argv[]) {
 
             char receiveBuf[_len];
             chan.cread(receiveBuf, sizeof(receiveBuf));
-            //cout << "Received: " << receiveBuf << endl << endl;
-            myfile << receiveBuf;
-
+            cout << "Received: " << receiveBuf << endl << endl;
+            myfile.write(receiveBuf, _len);
+            //myfile << receiveBuf;
+            loops +=1;
             file_length -= _len;
             index += _len;
             delete newBuf;
@@ -109,10 +114,9 @@ int main(int argc, char *argv[]) {
         }
         myfile.close();
         delete buf;
+        cout << "loops: " << loops << endl;
     }
 
-    //CREATING A NEW CHANNEL
-    //FIFORequestChannel chan2 ("control2", FIFORequestChannel::CLIENT_SIDE);
 
     // closing the channel    
     MESSAGE_TYPE m = QUIT_MSG;
