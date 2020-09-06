@@ -10,18 +10,20 @@
 using namespace std;
 
 
-int main(int argc, char *argv[]){
-  int person;
-  float seconds;
-  int ecgno;
-    FIFORequestChannel chan ("control", FIFORequestChannel::CLIENT_SIDE);
+int main(int argc, char *argv[]) {
+    int person;
+    float seconds;
+    int ecgno;
+    string fname;
+    bool file_transfer = false; //Determines whether to to get datamessage or file message
+    FIFORequestChannel chan("control", FIFORequestChannel::CLIENT_SIDE);
 
     // sending a non-sense message, you need to change this
     //char buf [MAX_MESSAGE];
-   // datamsg* x = new datamsg (1, 0.004, 2);
+    // datamsg* x = new datamsg (1, 0.004, 2);
 
     int opt;
-    while ((opt = getopt(argc, argv, "p:t:e:")) != -1) {
+    while ((opt = getopt(argc, argv, "p:t:e:f:")) != -1) {
         switch (opt) {
             case 'p':
                 person = atoi(optarg);
@@ -32,121 +34,91 @@ int main(int argc, char *argv[]){
             case 'e':
                 ecgno = atoi(optarg);
                 break;
+            case 'f':
+                fname = optarg;
+                file_transfer = true;
+                break;
         }
     }
+    //if data message chosen, execute loop below
+    if (!file_transfer) {
+        datamsg *x = new datamsg(person, seconds, ecgno);
 
-    datamsg* x = new datamsg (person, seconds, ecgno);
+        chan.cwrite(x, sizeof(datamsg));
 
-    chan.cwrite (x, sizeof (datamsg));
+        double *reply = new double;
+        chan.cread(reply, sizeof(double));
 
-	double *reply = new double;
-	chan.cread(reply, sizeof(double));
+        cout << "Server reply is " << *reply << endl;
 
-	cout << "Server reply is " << *reply << endl;
-
-	delete x;
-	delete reply;
+        delete x;
+        delete reply;
+    }
     //int nbytes = chan.cread (buf, MAX_MESSAGE);
 	//double reply = *(double *) buf;
 
-	//FILE Transfer *******************************************
-	ofstream myfile;
-    string fname = "1.csv";
-	string fpath = "received/" + fname;
+	//FILE Transfer *************************************************************
+	if (file_transfer) {
+        ofstream myfile;
+        string fpath = "received/" + fname;
 
-	int _offset = 0;
-	int _len = 0; //window length
-	//max bytes transferred
+        int _offset = 0;
+        int _len = 0; //window length
+        //max bytes transferred
 
-    filemsg fm (_offset,_len);
-	char *buf = new char [MAX_MESSAGE];
-	//char fname[] = "teslkansdlkjflasjdf.dat";
-	memcpy (buf, &fm, sizeof (filemsg));
-	strcpy (buf + sizeof (filemsg), fname.c_str());
-	chan.cwrite(buf, sizeof(filemsg) + fname.size() + 1);
-
-	//GET FILE LENGTH
-	__int64_t filelen;
-	chan.cread(&filelen, sizeof(__int64_t));
-	//cout << "File Length: " << filelen << endl;
-	int file_length = filelen;
-	cout << "file length: " << file_length << endl; //convert __int64_t to int
-
-	//creating a new file message
-	myfile.open(fpath);
-	int index = 0; // index in the file
-	int temp = 1000; //to be replaced with file length later
-	while (temp > 0) {
-	    if (temp >= 256){
-	        _len = 256;
-	    }
-	    else {
-	        _len = temp;
-	    }
-        filemsg newFM (index, _len);
-        char *newBuf = new char [MAX_MESSAGE];
+        filemsg fm(_offset, _len);
+        char *buf = new char[MAX_MESSAGE];
         //char fname[] = "teslkansdlkjflasjdf.dat";
-        memcpy (newBuf, &newFM, sizeof (filemsg));
-        strcpy (newBuf + sizeof (filemsg), fname.c_str());
-        chan.cwrite(newBuf, sizeof(filemsg) + fname.size() + 1);
+        memcpy(buf, &fm, sizeof(filemsg));
+        strcpy(buf + sizeof(filemsg), fname.c_str());
+        chan.cwrite(buf, sizeof(filemsg) + fname.size() + 1);
 
-        char receiveBuf [256];
-        chan.cread(receiveBuf, sizeof (receiveBuf));
-        cout << "Received: " << receiveBuf << endl << endl;
+        //GET FILE LENGTH
+        __int64_t filelen;
+        chan.cread(&filelen, sizeof(__int64_t));
+        //cout << "File Length: " << filelen << endl;
+        int file_length = filelen;
+        cout << "file length: " << file_length << endl; //convert __int64_t to int
 
-        temp -= _len;
-        index += _len;
+        //WRITING TO FILE FROM EXTRACTING CHANNEL DATA
+        myfile.open(fpath);
+        int index = 0; // index in the file
+        int temp = 1000; //to be replaced with file length later
+        while (temp > 0) {
+            if (temp >= MAX_MESSAGE) {
+                _len = MAX_MESSAGE;
+            } else {
+                _len = temp;
+            }
+            filemsg newFM(index, _len);
+            char *newBuf = new char[MAX_MESSAGE];
+            //char fname[] = "teslkansdlkjflasjdf.dat";
+            memcpy(newBuf, &newFM, sizeof(filemsg));
+            strcpy(newBuf + sizeof(filemsg), fname.c_str());
+            chan.cwrite(newBuf, sizeof(filemsg) + fname.size() + 1);
 
-        myfile << receiveBuf;
-	}
-	myfile.close();
-/*
-    char receiveBuf [256];
-    chan.cread(receiveBuf, sizeof (receiveBuf));
-    cout << "Received: " << receiveBuf << endl << endl;
+            char receiveBuf[256];
+            chan.cread(receiveBuf, sizeof(receiveBuf));
+            cout << "Received: " << receiveBuf << endl << endl;
 
-    myfile << receiveBuf << endl;
-    */
+            temp -= _len;
+            index += _len;
 
-    /*
-    filemsg fm (0,256);
-    char *buf = new char [MAX_MESSAGE];
-    //char fname[] = "teslkansdlkjflasjdf.dat";
-    memcpy (buf, &fm, sizeof (filemsg));
-    strcpy (buf + sizeof (filemsg), fname.c_str());
-    chan.cwrite(buf, sizeof(filemsg) + fname.size() + 1);
-     */
-
-// file length
-/*
-    int tmp_size = 10000;
-    while (_offset < tmp_size) {
-
-        if (tmp_size < MAX_MESSAGE) { //if there is less than 256 bytes left
-            _len = tmp_size;
-
-
+            myfile << receiveBuf;
         }
-        else {
-            _len  = MAX_MESSAGE; //is there is more that 256 bytes left
-
-        }
-
-        char recieveBuf [_len];
-        chan.cread(recieveBuf, sizeof (recieveBuf));
-        cout << "Recieved: " << recieveBuf << endl << endl;
-
-        _offset += _len;
-        tmp_size -= _len;
+        myfile.close();
+        delete buf;
+        return 0;
     }
-    */
 
-
-
-
-	delete buf;
+    //CREATING A NEW CHANNEL
+    //FIFORequestChannel chan2 ("control2", FIFORequestChannel::CLIENT_SIDE);
 
     // closing the channel    
     MESSAGE_TYPE m = QUIT_MSG;
     chan.cwrite (&m, sizeof (MESSAGE_TYPE));
+    //closing the new channel
+    //chan2.cwrite (&m, sizeof (MESSAGE_TYPE));
+
+
 }
