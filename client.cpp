@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 	//FILE Transfer *************************************************************
 	if (file_transfer) {
         ofstream myfile;
-        string fpath = "received/" + fname;
+        string fpath = "received/" + fname ;
 
         int _offset = 0;
         int _len = 0; //window length
@@ -83,12 +83,12 @@ int main(int argc, char *argv[]) {
         //WRITING TO FILE FROM EXTRACTING CHANNEL DATA
         myfile.open(fpath);
         int index = 0; // index in the file
-        int temp = 1000; //to be replaced with file length later
-        while (temp > 0) {
-            if (temp >= MAX_MESSAGE) {
+        //int temp = 1000; //to be replaced with file length later
+        while (file_length > 0) {
+            if (file_length >= MAX_MESSAGE) {
                 _len = MAX_MESSAGE;
             } else {
-                _len = temp;
+                _len = file_length;
             }
             filemsg newFM(index, _len);
             char *newBuf = new char[MAX_MESSAGE];
@@ -97,18 +97,18 @@ int main(int argc, char *argv[]) {
             strcpy(newBuf + sizeof(filemsg), fname.c_str());
             chan.cwrite(newBuf, sizeof(filemsg) + fname.size() + 1);
 
-            char receiveBuf[256];
+            char receiveBuf[_len];
             chan.cread(receiveBuf, sizeof(receiveBuf));
-            cout << "Received: " << receiveBuf << endl << endl;
-
-            temp -= _len;
-            index += _len;
-
+            //cout << "Received: " << receiveBuf << endl << endl;
             myfile << receiveBuf;
+
+            file_length -= _len;
+            index += _len;
+            delete newBuf;
+
         }
         myfile.close();
         delete buf;
-        return 0;
     }
 
     //CREATING A NEW CHANNEL
