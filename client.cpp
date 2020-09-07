@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
         buffer_length = MAX_MESSAGE;
     }
 
-    cout << "buffer_length: " << buffer_length << endl;
+    //cout << "buffer_length: " << buffer_length << endl;
 	if (file_transfer) {
 	    auto start = chrono::steady_clock::now(); //clock start
         string fpath = "received/" + fname ; //file to write to
