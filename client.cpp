@@ -144,4 +144,5 @@ int main(int argc, char *argv[]) {
     //closing the new channel
     //chan2.cwrite (&m, sizeof (MESSAGE_TYPE));
 
+    sleep(3);
 }
