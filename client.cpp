@@ -9,6 +9,7 @@
 #include<sys/wait.h>
 #include <string>
 #include <chrono>
+#include <sys/time.h>
 
 using namespace std;
 
@@ -75,6 +76,7 @@ int main(int argc, char *argv[]) {
 
         //REQUEST 1000 data points and move to x1.csv
 
+        struct timeval start, stop;
         int person = 1;
         double seconds  = 0.000;
         string fname = "x1.csv";
@@ -82,6 +84,7 @@ int main(int argc, char *argv[]) {
         ofstream myfile;
         myfile.open(fpath);
         while (seconds < 5) {
+            gettimeofday(&start, NULL);
             int ecgno = 1;
             myfile << seconds << "\t";
             while (ecgno <= 2) {
@@ -96,6 +99,9 @@ int main(int argc, char *argv[]) {
             myfile << endl;
             seconds += 0.004;
         }
+        gettimeofday(&stop, NULL);
+        double time = (stop.tv_usec - start.tv_usec);
+        cout << "time to transfer 1250 data points: " << time << " microseconds" << endl;
         myfile.close();
         delete x;
         delete reply;
