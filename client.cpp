@@ -83,13 +83,14 @@ int main(int argc, char *argv[]) {
         myfile.open(fpath);
         while (seconds < 5) {
             int ecgno = 1;
+            myfile << seconds << "\t";
             while (ecgno <= 2) {
                 datamsg *x = new datamsg(1, seconds, ecgno);
                 chan.cwrite(x, sizeof(datamsg));
                 double *reply = new double;
                 chan.cread(reply, sizeof(double));
 
-                myfile << *reply,;
+                myfile << *reply << "\t";
                 ecgno++;
             }
             myfile << endl;
