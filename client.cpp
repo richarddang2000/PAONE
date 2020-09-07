@@ -20,27 +20,30 @@ int main(int argc, char *argv[]) {
     int ecgno;
 
     string fname;
+/*
+    cout << "server name: " << server << endl;
+    //cout << "string is: ./server -m 256" << endl;
+    cout << (server_array == "./server -m 256") << endl;
+    cout << (1 == 1) << endl;
+*/
     int buffer_capacity;
-    string server = "./server -m " + to_string(buffer_capacity);
-    int l = server.length();
-    char server_array[l + 1];
-    strcpy(server_array, server.c_str());
-    cout << "server name: " << server_array << endl;
-
     char newChannelName[100];
     bool newChannel = false; // was -c and argument?
     bool file_transfer = false; //Determines whether to to get datamessage or file message
     bool changeBuffer = false; //indicates whether original buffer capacity was changed
 
+    FIFORequestChannel chan("control", FIFORequestChannel::CLIENT_SIDE);
+
+
     //FORK and EXECVP
+    /*
     char* args [] = {"./server", "m:"};
     pid_t pid = fork();
     cout << "pid = " << pid << endl;
     if (pid == 0){
-        execvp(args[0], args);//run server
+        execvp(args[0], args );//run server
     }
-
-    FIFORequestChannel chan("control", FIFORequestChannel::CLIENT_SIDE);
+     */
 
     int opt;
     while ((opt = getopt(argc, argv, "p:t:e:f:m:c")) != -1) {
@@ -63,18 +66,11 @@ int main(int argc, char *argv[]) {
                 changeBuffer = true;
                 break;
             case 'c':
-                MESSAGE_TYPE m = NEWCHANNEL_MSG;
-                chan.cwrite(&m, sizeof(MESSAGE_TYPE));
 
-                //char newChannelName[100];
-                chan.cread(newChannelName, sizeof (char[100]));
-                FIFORequestChannel(newChannelName, FIFORequestChannel::CLIENT_SIDE);
-                cout << "new channel name: " << newChannelName << endl;
                 newChannel = true;
                 break;
         }
     }
-
 
     //if data message chosen, execute loop below
     if (!file_transfer && !newChannel) {
@@ -199,6 +195,13 @@ int main(int argc, char *argv[]) {
     cout << "Reading from channel 2 now..." << endl;
     FIFORequestChannel chan2(newChannelName, FIFORequestChannel::CLIENT_SIDE);
     if (newChannel) {
+        MESSAGE_TYPE m = NEWCHANNEL_MSG;
+        chan.cwrite(&m, sizeof(MESSAGE_TYPE));
+
+        //char newChannelName[100];
+        chan.cread(newChannelName, sizeof (char[100]));
+        FIFORequestChannel(newChannelName, FIFORequestChannel::CLIENT_SIDE);
+        cout << "new channel name: " << newChannelName << endl;
         datamsg *x = new datamsg(7, 0.004, 1);
 
         chan2.cwrite(x, sizeof(datamsg));
@@ -208,10 +211,12 @@ int main(int argc, char *argv[]) {
 
 
         delete reply;
+
+        // closing the  NEW channel
+        MESSAGE_TYPE n = QUIT_MSG;
+        chan2.cwrite (&n, sizeof (MESSAGE_TYPE));
     }
-    // closing the  NEW channel
-    MESSAGE_TYPE n = QUIT_MSG;
-    chan2.cwrite (&n, sizeof (MESSAGE_TYPE));
-*/
+    */
+
     sleep(3);
 }
