@@ -8,11 +8,12 @@
 #include "FIFOreqchannel.h"
 #include<sys/wait.h>
 #include <string>
+#include <chrono>
 
 using namespace std;
 
 int main(int argc, char *argv[]) {
-
+/*
     //FORK and EXECVP
     char* args [] = {"./server", "p:t:e:f:m:"};
     pid_t pid = fork();
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
     if (pid == 0){
         execvp(args[0], args);//run server
     }
+    */
 
     int person;
     float seconds;
@@ -53,6 +55,9 @@ int main(int argc, char *argv[]) {
                 buffer_capacity = atoi(optarg);
                 changeBuffer = true;
                 break;
+            case 'c':
+                MESSAGE_TYPE m = NEWCHANNEL_MSG;
+                //FIFORequestChannel::open_pipe(chan, m);
         }
     }
 
@@ -68,8 +73,32 @@ int main(int argc, char *argv[]) {
 
         cout << "Server reply is " << *reply << endl;
 
+        //REQUEST 1000 data points and move to x1.csv
+
+        int person = 1;
+        double seconds  = 0.000;
+        string fname = "x1.csv";
+        string fpath = "received/" + fname ; //file to write to
+        ofstream myfile;
+        myfile.open(fpath);
+        while (seconds < 5) {
+            int ecgno = 1;
+            while (ecgno <= 2) {
+                datamsg *x = new datamsg(1, seconds, ecgno);
+                chan.cwrite(x, sizeof(datamsg));
+                double *reply = new double;
+                chan.cread(reply, sizeof(double));
+
+                myfile << *reply,;
+                ecgno++;
+            }
+            myfile << endl;
+            seconds += 0.004;
+        }
+        myfile.close();
         delete x;
         delete reply;
+
     }
 	//FILE Transfer *************************************************************
 	//change length of buffer depending on whether -m was called or not
@@ -85,6 +114,7 @@ int main(int argc, char *argv[]) {
 
     cout << "buffer_length: " << buffer_length << endl;
 	if (file_transfer) {
+	    auto start = chrono::steady_clock::now(); //clock start
         string fpath = "received/" + fname ; //file to write to
 	    ofstream myfile;
 
@@ -133,6 +163,9 @@ int main(int argc, char *argv[]) {
             delete newBuf;
 
         }
+        auto end = chrono::steady_clock::now();
+        auto time = chrono::duration<double, milli>(end - start);
+        cout << "Window Size: " << buffer_length << ", executed in " << time.count() << " milliseconds" << endl;
         myfile.close();
         delete buf;
     }
