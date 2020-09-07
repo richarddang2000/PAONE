@@ -15,6 +15,16 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
+    //FORK and EXECVP
+    char* args [] = {"./server", "p:t:e:f:m:c"};
+    pid_t pid = fork();
+    cout << "pid = " << pid << endl;
+    if (pid == 0){
+        execvp(args[0], args );
+        //run server
+    }
+
+
     int person;
     float seconds;
     int ecgno;
@@ -33,17 +43,6 @@ int main(int argc, char *argv[]) {
     bool changeBuffer = false; //indicates whether original buffer capacity was changed
 
     FIFORequestChannel chan("control", FIFORequestChannel::CLIENT_SIDE);
-
-
-    //FORK and EXECVP
-    /*
-    char* args [] = {"./server", "m:"};
-    pid_t pid = fork();
-    cout << "pid = " << pid << endl;
-    if (pid == 0){
-        execvp(args[0], args );//run server
-    }
-     */
 
     int opt;
     while ((opt = getopt(argc, argv, "p:t:e:f:m:c")) != -1) {
@@ -66,8 +65,17 @@ int main(int argc, char *argv[]) {
                 changeBuffer = true;
                 break;
             case 'c':
-
                 newChannel = true;
+
+                MESSAGE_TYPE m = NEWCHANNEL_MSG;
+                chan.cwrite(&m, sizeof(MESSAGE_TYPE));
+
+                char newChannelName[100];
+                chan.cread(newChannelName, sizeof (char[100]));
+
+                cout << "new channel name: " << newChannelName << endl;
+                FIFORequestChannel(newChannelName, FIFORequestChannel::CLIENT_SIDE);
+
                 break;
         }
     }
@@ -190,33 +198,28 @@ int main(int argc, char *argv[]) {
     // closing the channel    
     MESSAGE_TYPE m = QUIT_MSG;
     chan.cwrite (&m, sizeof (MESSAGE_TYPE));
-/*
-    //creating new channel
-    cout << "Reading from channel 2 now..." << endl;
-    FIFORequestChannel chan2(newChannelName, FIFORequestChannel::CLIENT_SIDE);
+
+
     if (newChannel) {
-        MESSAGE_TYPE m = NEWCHANNEL_MSG;
-        chan.cwrite(&m, sizeof(MESSAGE_TYPE));
+        //creating new channel
+        cout << "Reading from channel 2 now..." << endl;
+        FIFORequestChannel chan2("data_1", FIFORequestChannel::CLIENT_SIDE);
 
-        //char newChannelName[100];
-        chan.cread(newChannelName, sizeof (char[100]));
-        FIFORequestChannel(newChannelName, FIFORequestChannel::CLIENT_SIDE);
-        cout << "new channel name: " << newChannelName << endl;
-        datamsg *x = new datamsg(7, 0.004, 1);
-
+        datamsg *x = new datamsg(1, 0.000, 1);
         chan2.cwrite(x, sizeof(datamsg));
-        double *reply = new double;
-        chan2.cread(reply, sizeof(double));
-        cout << "Server reply is " << *reply << endl;
+        double *reply2 = new double;
+        chan2.cread(reply2, sizeof(double));
+        cout << "Server reply is " << *reply2 << endl;
 
 
-        delete reply;
+        delete reply2;
 
         // closing the  NEW channel
         MESSAGE_TYPE n = QUIT_MSG;
         chan2.cwrite (&n, sizeof (MESSAGE_TYPE));
     }
-    */
+
 
     sleep(3);
+    wait(NULL);
 }
